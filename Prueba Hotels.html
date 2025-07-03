@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor Interactivo de Arquitectura SGIER</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!--
+    Chosen Palette: Calm Harmony (Light Beige, Muted Teal, Soft Orange, Dark Gray for text)
+    Application Structure Plan: A single-page application with five interactive sections: 1. Introduction to SGIER. 2. An interactive, clickable architecture diagram replacing the static Mermaid chart, allowing users to drill down into components. 3. A card-based section for key features with modals for details. 4. An animated, step-by-step visualization of the information flow. 5. A simplified, interactive HTML/JS version of the MVP panel. This structure was chosen to transform the static, technical report into an exploratory, educational experience, prioritizing user understanding over the report's linear layout.
+    Visualization & Content Choices:
+    - Architecture Diagram: Report Info (System Layers/Components) -> Goal (Organize/Relate) -> Method (Interactive HTML/CSS Grid with JS-powered detail panel) -> Interaction (Click to highlight & show details) -> Justification (Far more engaging and informative than a static diagram) -> Library (Vanilla JS).
+    - Key Features: Report Info (Innovations like AI Prediction) -> Goal (Inform/Highlight) -> Method (Card grid with modals, illustrative Chart.js for AI prediction) -> Interaction (Click for details) -> Justification (Breaks down complex features into digestible chunks) -> Library (Vanilla JS, Chart.js).
+    - Info Flow: Report Info (Check-out example) -> Goal (Show Process) -> Method (Animated step-by-step visual flow) -> Interaction (User-controlled progression) -> Justification (Makes a complex process easy to follow visually) -> Library (Vanilla JS).
+    - MVP Panel: Report Info (React MVP description) -> Goal (Demonstrate) -> Method (Interactive HTML/JS replica) -> Interaction (Filtering, status changes) -> Justification (Provides a tangible feel of the system without needing a React environment) -> Library (Vanilla JS).
+    CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4;
+            color: #333;
+        }
+        .connector-line {
+            position: absolute;
+            background-color: #9ca3af;
+            z-index: 0;
+        }
+        .h-line { height: 2px; }
+        .v-line { width: 2px; }
+        .component-box {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            z-index: 10;
+        }
+        .component-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .selected-component {
+            transform: translateY(-5px);
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .flow-step {
+            transition: all 0.5s ease-in-out;
+        }
+        .flow-step-active {
+            border-color: #2563eb;
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .flow-arrow {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out 0.3s;
+        }
+        .flow-arrow-active {
+            opacity: 1;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            max-width: 500px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <!-- Header -->
+        <header class="text-center mb-12 md:mb-16">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-800 mb-2">Sistema de Gestión Integral de Experiencias y Recursos (SGIER)</h1>
+            <p class="text-lg md:text-xl text-gray-600">Una exploración interactiva de la arquitectura hotelera del futuro.</p>
+        </header>
+
+        <!-- Navegación -->
+        <nav class="bg-white/70 backdrop-blur-md sticky top-4 z-30 rounded-full shadow-lg mb-12 md:mb-16 py-2 px-4 flex justify-center items-center gap-4 md:gap-8 max-w-2xl mx-auto">
+            <a href="#arquitectura" class="text-gray-700 hover:text-blue-600 font-semibold transition">Arquitectura</a>
+            <span class="text-gray-300">|</span>
+            <a href="#caracteristicas" class="text-gray-700 hover:text-blue-600 font-semibold transition">Características</a>
+            <span class="text-gray-300">|</span>
+            <a href="#flujo" class="text-gray-700 hover:text-blue-600 font-semibold transition">Flujo</a>
+            <span class="text-gray-300">|</span>
+            <a href="#mvp" class="text-gray-700 hover:text-blue-600 font-semibold transition">MVP</a>
+        </nav>
+
+        <!-- Sección de Arquitectura Interactiva -->
+        <section id="arquitectura" class="mb-20 md:mb-24">
+            <h2 class="text-3xl font-bold text-center mb-4 text-gray-800">Arquitectura del Sistema</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                El SGIER se basa en una arquitectura de microservicios moderna y escalable. Haz clic en cualquier componente para explorar sus detalles y entender cómo se interconectan las diferentes capas del sistema.
+            </p>
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Diagrama -->
+                <div class="w-full lg:w-2/3 bg-white p-6 rounded-2xl shadow-lg relative overflow-x-auto">
+                    <div id="diagram-container" class="grid grid-cols-1 md:grid-cols-3 gap-y-10 gap-x-4 items-start min-w-[700px] md:min-w-0">
+                        <!-- Capa de UI -->
+                        <div class="flex flex-col items-center gap-4">
+                            <h3 class="font-bold text-lg text-blue-700">Interfaces de Usuario</h3>
+                            <div data-id="ui_web" class="component-box bg-blue-100 border-2 border-blue-200 text-blue-800 p-3 rounded-lg text-center w-48">Interfaz Web</div>
+                            <div data-id="ui_movil" class="component-box bg-blue-100 border-2 border-blue-200 text-blue-800 p-3 rounded-lg text-center w-48">App Móvil</div>
+                            <div data-id="ui_kiosko" class="component-box bg-blue-100 border-2 border-blue-200 text-blue-800 p-3 rounded-lg text-center w-48">Kioskos Interactivos</div>
+                        </div>
+
+                        <!-- Capa de Aplicación -->
+                        <div class="flex flex-col items-center gap-4">
+                             <h3 class="font-bold text-lg text-teal-700">Capa de Aplicación</h3>
+                            <div data-id="api_gateway" class="component-box bg-teal-100 border-2 border-teal-200 text-teal-800 p-3 rounded-lg text-center w-48 font-semibold">API Gateway</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div data-id="ms_reservas" class="component-box bg-teal-50 text-teal-800 p-2 text-xs rounded-md text-center">Reservas</div>
+                                <div data-id="ms_huesped" class="component-box bg-teal-50 text-teal-800 p-2 text-xs rounded-md text-center">Huésped 360°</div>
+                                <div data-id="ms_tareas" class="component-box bg-teal-50 text-teal-800 p-2 text-xs rounded-md text-center">Tareas</div>
+                                <div data-id="ms_mantenimiento" class="component-box bg-teal-50 text-teal-800 p-2 text-xs rounded-md text-center">Mantenimiento</div>
+                                <div data-id="ms_inventario" class="component-box bg-teal-50 text-teal-800 p-2 text-xs rounded-md text-center">Inventario</div>
+                                <div data-id="ms_servicios" class="component-box bg-teal-50 text-teal-800 p-2 text-xs rounded-md text-center">Servicios/F&B</div>
+                            </div>
+                        </div>
+
+                        <!-- Capa de IA y Datos -->
+                        <div class="flex flex-col items-center gap-4">
+                             <h3 class="font-bold text-lg text-orange-700">IA y Datos</h3>
+                            <div data-id="ai_engine" class="component-box bg-orange-100 border-2 border-orange-200 text-orange-800 p-3 rounded-lg text-center w-48 font-semibold">Motor de IA</div>
+                            <div class="grid grid-cols-2 gap-2">
+                               <div data-id="ai_demand" class="component-box bg-orange-50 text-orange-800 p-2 text-xs rounded-md text-center">Predicción</div>
+                               <div data-id="ai_personalization" class="component-box bg-orange-50 text-orange-800 p-2 text-xs rounded-md text-center">Personalización</div>
+                               <div data-id="ai_optimization" class="component-box bg-orange-50 text-orange-800 p-2 text-xs rounded-md text-center">Optimización</div>
+                            </div>
+                             <div data-id="db_operacional" class="component-box bg-gray-200 border-2 border-gray-300 text-gray-800 p-3 rounded-lg text-center w-48 mt-4">DB Operacional</div>
+                             <div data-id="data_lake" class="component-box bg-gray-200 border-2 border-gray-300 text-gray-800 p-3 rounded-lg text-center w-48">Data Lake</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Panel de Detalles -->
+                <div id="details-panel" class="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-lg sticky top-24 h-fit">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4" id="details-title">Selecciona un componente</h3>
+                    <p class="text-gray-600" id="details-description">Haz clic en un elemento del diagrama para ver su descripción detallada aquí.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Características Clave -->
+        <section id="caracteristicas" class="mb-20 md:mb-24">
+            <h2 class="text-3xl font-bold text-center mb-10 text-gray-800">Características Clave</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
+                    <h3 class="font-bold text-xl mb-3 text-teal-700">Predicción con IA</h3>
+                    <p class="text-gray-600 mb-4">Anticipa la demanda de recursos, personal y consumo para una gestión proactiva, minimizando costes y optimizando el servicio.</p>
+                    <div class="chart-container">
+                        <canvas id="predictionChart"></canvas>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
+                    <h3 class="font-bold text-xl mb-3 text-blue-700">Hyper-Personalización</h3>
+                    <p class="text-gray-600">Utiliza perfiles 360° de los huéspedes para anticipar sus necesidades y preferencias, desde la temperatura de la habitación hasta sus actividades favoritas.</p>
+                </div>
+                <!-- Card 3 -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
+                    <h3 class="font-bold text-xl mb-3 text-orange-700">Mantenimiento Predictivo</h3>
+                    <p class="text-gray-600">Analiza datos de sensores IoT para predecir fallos en equipos críticos antes de que ocurran, evitando interrupciones y reparaciones costosas.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección Flujo de Información -->
+        <section id="flujo" class="mb-20 md:mb-24">
+            <h2 class="text-3xl font-bold text-center mb-4 text-gray-800">Flujo de Información: Ejemplo Práctico</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                Observa cómo las diferentes partes del sistema colaboran en tiempo real. Este es el flujo de trabajo típico cuando un huésped realiza el check-out. Usa los botones para avanzar en el proceso.
+            </p>
+            <div class="flex flex-col items-center gap-4">
+                <div id="flow-step-1" class="flow-step bg-white p-6 rounded-xl shadow-md w-full max-w-2xl border-2 border-transparent">
+                    <p class="font-bold text-lg text-blue-800">1. Check-out del Huésped</p>
+                    <p class="text-gray-600">El huésped finaliza su estancia. El <span class="font-semibold text-teal-700">Microservicio de Reservas</span> actualiza el estado de la habitación a "Sucia" en la <span class="font-semibold text-gray-700">DB Operacional</span>.</p>
+                </div>
+                <div id="flow-arrow-1" class="flow-arrow text-3xl text-gray-400">↓</div>
+                <div id="flow-step-2" class="flow-step bg-white p-6 rounded-xl shadow-md w-full max-w-2xl border-2 border-transparent">
+                    <p class="font-bold text-lg text-teal-800">2. Asignación de Tarea por IA</p>
+                    <p class="text-gray-600">El <span class="font-semibold text-teal-700">Microservicio de Tareas</span>, con ayuda del <span class="font-semibold text-orange-700">Motor de IA</span>, asigna la limpieza al miembro del personal más adecuado, considerando ubicación, disponibilidad y carga de trabajo.</p>
+                </div>
+                <div id="flow-arrow-2" class="flow-arrow text-3xl text-gray-400">↓</div>
+                <div id="flow-step-3" class="flow-step bg-white p-6 rounded-xl shadow-md w-full max-w-2xl border-2 border-transparent">
+                    <p class="font-bold text-lg text-indigo-800">3. Notificación al Personal</p>
+                    <p class="text-gray-600">La tarea se envía instantáneamente a la <span class="font-semibold text-blue-700">App Móvil</span> del personal de limpieza, con detalles de la habitación y prioridades.</p>
+                </div>
+                <div id="flow-arrow-3" class="flow-arrow text-3xl text-gray-400">↓</div>
+                <div id="flow-step-4" class="flow-step bg-white p-6 rounded-xl shadow-md w-full max-w-2xl border-2 border-transparent">
+                    <p class="font-bold text-lg text-green-800">4. Habitación Lista</p>
+                    <p class="text-gray-600">Una vez limpia, el personal marca la tarea como completada en su app. El sistema actualiza el estado a "Limpia y Disponible", lista para el próximo huésped.</p>
+                </div>
+                <div class="mt-8 flex gap-4">
+                    <button id="prev-step" class="bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-full hover:bg-gray-400 transition disabled:opacity-50">Anterior</button>
+                    <button id="next-step" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-full hover:bg-blue-700 transition">Siguiente</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección MVP -->
+        <section id="mvp" class="mb-12">
+            <h2 class="text-3xl font-bold text-center mb-4 text-gray-800">MVP: Panel de Limpieza</h2>
+             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-10">
+                A continuación, una simulación interactiva del panel de gestión de limpieza. Este sería el tipo de interfaz que usaría un supervisor para monitorizar y asignar tareas en tiempo real.
+            </p>
+            <div id="mvp-container" class="bg-white p-6 rounded-2xl shadow-xl max-w-5xl mx-auto">
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- DATA ---
+            const componentDetails = {
+                ui_web: { title: "Interfaz Web", description: "Dashboards y paneles de control para el personal administrativo y de gerencia. Permite una visión global de las operaciones del hotel, informes y configuraciones del sistema." },
+                ui_movil: { title: "App Móvil", description: "Aplicación para el personal en movimiento (limpieza, mantenimiento) para recibir y gestionar tareas. También puede tener una versión para huéspedes para check-in, solicitudes y control de la habitación." },
+                ui_kiosko: { title: "Kioskos Interactivos", description: "Puntos de autoservicio en el lobby del hotel para que los huéspedes realicen el check-in y check-out de forma rápida, o hagan solicitudes básicas." },
+                api_gateway: { title: "API Gateway", description: "Punto de entrada único para todas las solicitudes de las interfaces de usuario. Gestiona la autenticación, seguridad y enruta las peticiones al microservicio correspondiente." },
+                ms_reservas: { title: "Microservicio: Reservas", description: "Gestiona todo el ciclo de vida de una reserva, desde la creación hasta el check-out, incluyendo la disponibilidad de habitaciones y tarifas." },
+                ms_huesped: { title: "Microservicio: Huésped 360°", description: "Mantiene un perfil dinámico y completo de cada huésped, recopilando sus preferencias, historial y comportamiento para la personalización." },
+                ms_tareas: { title: "Microservicio: Tareas", description: "Orquesta la creación, asignación y seguimiento de todas las tareas operativas, como limpieza, servicio de habitaciones o peticiones especiales." },
+                ms_mantenimiento: { title: "Microservicio: Mantenimiento", description: "Gestiona tanto las incidencias de mantenimiento reactivas como las tareas preventivas sugeridas por el motor de IA." },
+                ms_inventario: { title: "Microservicio: Inventario", description: "Controla el stock de todos los consumibles del hotel, desde los productos del minibar hasta los suministros de limpieza, optimizando los pedidos." },
+                ms_servicios: { title: "Microservicio: Servicios/F&B", description: "Gestiona los servicios adicionales del hotel, como reservas en restaurantes, tratamientos de spa y otras actividades de ocio (Food & Beverage)." },
+                ai_engine: { title: "Motor de IA Central", description: "El cerebro del sistema. Orquesta los diferentes módulos de IA y facilita la comunicación entre los modelos y los microservicios de la aplicación." },
+                ai_demand: { title: "Módulo: Predicción de Demanda", description: "Analiza datos históricos y externos para predecir con alta precisión la ocupación, la demanda en restaurantes y el uso de otros servicios." },
+                ai_personalization: { title: "Módulo: Personalización", description: "Utiliza el perfil del huésped para generar recomendaciones y acciones proactivas que personalizan la estancia de forma única." },
+                ai_optimization: { title: "Módulo: Optimización de Recursos", description: "Sugiere la asignación más eficiente del personal y los recursos basándose en la demanda predicha, minimizando tiempos de espera y costes." },
+                db_operacional: { title: "Base de Datos Operacional", description: "Almacena los datos transaccionales del día a día en tiempo real. Puede ser una base de datos SQL o NoSQL dependiendo de las necesidades del microservicio." },
+                data_lake: { title: "Data Lake", description: "Repositorio central que almacena grandes volúmenes de datos brutos (historial de reservas, logs, datos de sensores IoT) para ser analizados por la IA." },
+            };
+
+            // --- Arquitectura Interactiva ---
+            const diagramContainer = document.getElementById('diagram-container');
+            const detailsTitle = document.getElementById('details-title');
+            const detailsDescription = document.getElementById('details-description');
+            let selectedComponent = null;
+
+            diagramContainer.addEventListener('click', function(e) {
+                const component = e.target.closest('.component-box');
+                if (component) {
+                    const componentId = component.dataset.id;
+                    const details = componentDetails[componentId];
+
+                    if (selectedComponent) {
+                        selectedComponent.classList.remove('selected-component');
+                    }
+                    component.classList.add('selected-component');
+                    selectedComponent = component;
+
+                    detailsTitle.textContent = details.title;
+                    detailsDescription.textContent = details.description;
+                }
+            });
+
+            // --- Gráfico de Predicción ---
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                    datasets: [{
+                        label: 'Ocupación Real',
+                        data: [65, 59, 80, 81, 85, 90, 92],
+                        borderColor: '#9ca3af',
+                        backgroundColor: 'rgba(156, 163, 175, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Predicción IA',
+                        data: [62, 61, 78, 83, 86, 88, 93],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                        borderDash: [5, 5],
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
+            });
+
+            // --- Flujo de Información ---
+            let currentStep = 1;
+            const totalSteps = 4;
+            const nextBtn = document.getElementById('next-step');
+            const prevBtn = document.getElementById('prev-step');
+
+            function updateFlow() {
+                for (let i = 1; i <= totalSteps; i++) {
+                    document.getElementById(`flow-step-${i}`).classList.remove('flow-step-active');
+                    if (i < totalSteps) {
+                         document.getElementById(`flow-arrow-${i}`).classList.remove('flow-arrow-active');
+                    }
+                }
+                for (let i = 1; i < currentStep; i++) {
+                     if (i < totalSteps) {
+                         document.getElementById(`flow-arrow-${i}`).classList.add('flow-arrow-active');
+                    }
+                }
+                document.getElementById(`flow-step-${currentStep}`).classList.add('flow-step-active');
+                prevBtn.disabled = currentStep === 1;
+                nextBtn.disabled = currentStep === totalSteps;
+            }
+
+            nextBtn.addEventListener('click', () => {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    updateFlow();
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (currentStep > 1) {
+                    currentStep--;
+                    updateFlow();
+                }
+            });
+            updateFlow();
+            
+            // --- Lógica del MVP Panel ---
+            const mvpContainer = document.getElementById('mvp-container');
+            let rooms = [];
+            const cleaners = [
+                { id: 'C01', name: 'Ana García' },
+                { id: 'C02', name: 'Pedro López' },
+                { id: 'C03', name: 'María Sanz' },
+            ];
+
+            function generateInitialRooms() {
+                 const statuses = ['dirty', 'clean', 'occupied', 'maintenance'];
+                 const types = ['Estándar', 'Doble', 'Suite'];
+                 rooms = Array.from({ length: 9 }, (_, i) => ({
+                    id: `R10${i + 1}`,
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    cleanerId: null,
+                    type: types[Math.floor(Math.random() * types.length)],
+                }));
+            }
+
+            function renderMVP() {
+                mvpContainer.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${rooms.map(room => {
+                            let statusColor = 'bg-gray-100 border-gray-300';
+                            let statusText = 'Desconocido';
+                            if(room.status === 'dirty') { statusColor = 'bg-red-100 border-red-300'; statusText = 'Sucia'; }
+                            if(room.status === 'clean') { statusColor = 'bg-green-100 border-green-300'; statusText = 'Limpia'; }
+                            if(room.status === 'occupied') { statusColor = 'bg-blue-100 border-blue-300'; statusText = 'Ocupada'; }
+                            if(room.status === 'maintenance') { statusColor = 'bg-yellow-100 border-yellow-300'; statusText = 'Mantenimiento'; }
+
+                            return `
+                                <div class="room-card p-4 rounded-lg border ${statusColor}">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <h4 class="font-bold text-lg text-gray-800">Habitación ${room.id}</h4>
+                                        <span class="text-sm font-medium px-2 py-1 rounded-full ${statusColor}">${statusText}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">Tipo: ${room.type}</p>
+                                    <div class="space-y-2">
+                                        ${room.status === 'dirty' ? `
+                                            <select data-room-id="${room.id}" class="assign-cleaner w-full p-2 border border-gray-300 rounded-md text-sm">
+                                                <option value="">Asignar limpiador...</option>
+                                                ${cleaners.map(c => `<option value="${c.id}" ${room.cleanerId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                            </select>
+                                            <button data-room-id="${room.id}" class="mark-clean w-full bg-green-500 text-white py-1 px-3 rounded-md text-sm hover:bg-green-600">Marcar Limpia</button>
+                                        ` : `
+                                            <button data-room-id="${room.id}" class="mark-dirty w-full bg-red-500 text-white py-1 px-3 rounded-md text-sm hover:bg-red-600">Marcar Sucia</button>
+                                        `}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+            
+            mvpContainer.addEventListener('click', e => {
+                const roomId = e.target.dataset.roomId;
+                if (!roomId) return;
+
+                if (e.target.classList.contains('mark-clean')) {
+                    const room = rooms.find(r => r.id === roomId);
+                    room.status = 'clean';
+                    room.cleanerId = null;
+                } else if (e.target.classList.contains('mark-dirty')) {
+                    const room = rooms.find(r => r.id === roomId);
+                    room.status = 'dirty';
+                }
+                renderMVP();
+            });
+            
+            mvpContainer.addEventListener('change', e => {
+                 const roomId = e.target.dataset.roomId;
+                if (!roomId || !e.target.classList.contains('assign-cleaner')) return;
+
+                const room = rooms.find(r => r.id === roomId);
+                room.cleanerId = e.target.value || null;
+                renderMVP();
+            });
+
+            generateInitialRooms();
+            renderMVP();
+
+            // Smooth scrolling for nav links
+            document.querySelectorAll('nav a').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
