@@ -342,6 +342,8 @@
                 { id: 'C01', name: 'Ana García' },
                 { id: 'C02', name: 'Pedro López' },
                 { id: 'C03', name: 'María Sanz' },
+                { id: 'C04', name: 'Juan Ruiz' },
+                { id: 'C05', name: 'Laura Torres' },
             ];
 
             function generateInitialRooms() {
@@ -375,7 +377,7 @@
                                     <p class="text-sm text-gray-600 mb-3">Tipo: ${room.type}</p>
                                     <div class="space-y-2">
                                         ${room.status === 'dirty' ? `
-                                            <select data-room-id="${room.id}" class="assign-cleaner w-full p-2 border border-gray-300 rounded-md text-sm">
+                                            <select data-room-id="${room.id}" class="assign-cleaner w-full p-2 border border-gray-300 rounded-md text-sm bg-white">
                                                 <option value="">Asignar limpiador...</option>
                                                 ${cleaners.map(c => `<option value="${c.id}" ${room.cleanerId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                                             </select>
